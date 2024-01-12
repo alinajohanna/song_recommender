@@ -7,12 +7,13 @@ from config import client_id, client_secret
 import spotipy as sp
 from spotipy.oauth2 import SpotifyClientCredentials
 from scipy.spatial import distance_matrix
-
-X_umap_transformed_df = pd.read_csv('umap_df.csv').drop(columns="Unnamed: 0")
+import plotly.graph_objects as go
 
 sp = sp.Spotify(auth_manager=SpotifyClientCredentials(client_id=client_id, client_secret=client_secret))
 
-def recommender(df) -> None:
+X_umap_transformed_df = pd.read_csv('umap_df.csv').drop(columns="Unnamed: 0")
+
+def recommender2(df) -> None:
     while True:
         # Enter a song title
         song = input('Please enter the name of a song or an artist: ')
@@ -52,13 +53,63 @@ def recommender(df) -> None:
 
         d = distance_matrix(song_umap_transformed_df, X_umap_transformed_df)
         closest_song_to_user_song = np.argmin(d)
-        
+
         song_cluster = df.iloc[closest_song_to_user_song, -1]
-        
+
         suggestions = df[df['cluster'] == song_cluster].sample(5)
         url = "https://open.spotify.com/intl-de/track/"+suggestions['id'].values[0]
         print(f"Here is a recommended song: {suggestions['title'].values[0]} by {suggestions['artist'].values[0]}")
         print(f"Listen to it here: {url}")
+        
+        # Show the graph for the audio features of the suggested song
+        suggestions = suggestions[['danceability', 'energy', 'key', 'loudness', 'mode', 'speechiness', 'acousticness', 'instrumentalness', 'liveness', 'valence', 'tempo']]
+        suggested_song_features = suggestions.iloc[0]
+
+        
+        #plot it
+        suggested_song_df = pd.DataFrame(dict(
+            r=suggested_song_features,
+            theta=['danceability', 'energy', 'key', 'loudness', 'mode',
+                   'speechiness', 'acousticness', 'instrumentalness', 'liveness', 'valence', 'tempo']
+        ))
+        
+        your_song_df = pd.DataFrame(dict(
+            r=feature_df.iloc[0],
+            theta=['danceability', 'energy', 'key', 'loudness', 'mode',
+                   'speechiness', 'acousticness', 'instrumentalness', 'liveness', 'valence', 'tempo']
+        ))
+
+        fig = go.Figure()
+        #fig = make_subplots(rows=1, cols=2, specs=[[{'type': 'polar'}]*2])
+
+        fig.add_trace(go.Scatterpolar(
+            name = "you song",
+            r=your_song_df['r'],
+            theta=your_song_df['theta'],
+            fill='toself',
+            line_color='lightsteelblue'
+        ))
+        
+        fig.add_trace(go.Scatterpolar(
+            name = "suggested song",
+            r=suggested_song_df['r'],
+            theta=suggested_song_df['theta'],
+            fill='toself',
+            line_color='orange'
+        ))
+        
+
+        fig.update_layout(
+            polar=dict(
+                radialaxis=dict(
+                    visible=True,
+                ),
+            ),
+            showlegend=True,
+            title="See how your songs audio features compare to the suggested song features:",
+        )
+
+        fig.show()
 
         user_feedback = input('Type "next" if you want to explore more amazing music. If not then type "end": ')
         if user_feedback == 'end':
