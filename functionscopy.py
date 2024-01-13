@@ -55,6 +55,7 @@ def recommender2(df) -> None:
         closest_song_to_user_song = np.argmin(d)
 
         song_cluster = df.iloc[closest_song_to_user_song, -1]
+        
 
         suggestions = df[df['cluster'] == song_cluster].sample(5)
         url = "https://open.spotify.com/intl-de/track/"+suggestions['id'].values[0]
@@ -63,7 +64,11 @@ def recommender2(df) -> None:
         
         # Show the graph for the audio features of the suggested song
         suggestions = suggestions[['danceability', 'energy', 'key', 'loudness', 'mode', 'speechiness', 'acousticness', 'instrumentalness', 'liveness', 'valence', 'tempo']]
-        suggested_song_features = suggestions.iloc[0]
+        suggested_song_features = loaded_scaler.transform(suggestions)
+        suggested_song_features = pd.DataFrame(suggested_song_features)
+        #suggested_song_features = suggestions.iloc[0]
+        suggested_song_features = suggested_song_features.iloc[0]
+        
 
         
         #plot it
@@ -74,7 +79,7 @@ def recommender2(df) -> None:
         ))
         
         your_song_df = pd.DataFrame(dict(
-            r=feature_df.iloc[0],
+            r=X.iloc[0],
             theta=['danceability', 'energy', 'key', 'loudness', 'mode',
                    'speechiness', 'acousticness', 'instrumentalness', 'liveness', 'valence', 'tempo']
         ))
